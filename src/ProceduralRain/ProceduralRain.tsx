@@ -26,19 +26,19 @@ function createCloudMask(random: () => number, count: number, minimumSize: numbe
     const y = -5 + random() * 110
     const radiusX = minimumSize + random() * (maximumSize - minimumSize)
     const radiusY = minimumSize * 0.7 + random() * (maximumSize * 1.08 - minimumSize * 0.7)
-    const peak = 0.48 + random() * 0.5
+    const peak = 0.92 + random() * 0.08
     const core = 8 + random() * 20
     const shoulder = 42 + random() * 18
     const edge = 72 + random() * 22
-    return `radial-gradient(ellipse ${radiusX.toFixed(1)}% ${radiusY.toFixed(1)}% at ${x.toFixed(1)}% ${y.toFixed(1)}%, rgb(0 0 0 / ${peak.toFixed(2)}) 0%, rgb(0 0 0 / ${(peak * 0.88).toFixed(2)}) ${core.toFixed(0)}%, rgb(0 0 0 / ${(peak * 0.42).toFixed(2)}) ${shoulder.toFixed(0)}%, transparent ${edge.toFixed(0)}%)`
+    return `radial-gradient(ellipse ${radiusX.toFixed(1)}% ${radiusY.toFixed(1)}% at ${x.toFixed(1)}% ${y.toFixed(1)}%, rgb(0 0 0 / ${peak.toFixed(2)}) 0%, rgb(0 0 0 / ${(peak * 0.96).toFixed(2)}) ${core.toFixed(0)}%, rgb(0 0 0 / ${(peak * 0.7).toFixed(2)}) ${shoulder.toFixed(0)}%, transparent ${edge.toFixed(0)}%)`
   }).join(', ')
 }
 
 function createCloudLayers(seed: string) {
   const random = createRandom(`${seed}:cloud-fields`)
   return [
-    { count: 24, minimumSize: 4, maximumSize: 11, blur: 48 + random() * 24, opacity: 0.88 + random() * 0.1 },
-    { count: 16, minimumSize: 7, maximumSize: 16, blur: 84 + random() * 36, opacity: 0.62 + random() * 0.14 },
+    { count: 24, minimumSize: 4, maximumSize: 11, blur: 72 + random() * 36 },
+    { count: 16, minimumSize: 7, maximumSize: 16, blur: 132 + random() * 48 },
   ].map((layer, id) => {
     const duration = 84 + random() * 68
     const maskImage = createCloudMask(random, layer.count, layer.minimumSize, layer.maximumSize)
@@ -46,7 +46,6 @@ function createCloudLayers(seed: string) {
       WebkitMaskImage: maskImage,
       maskImage,
       '--cloud-blur': `${layer.blur.toFixed(1)}px`,
-      '--cloud-opacity': layer.opacity.toFixed(2),
       '--cloud-duration': `${duration.toFixed(0)}s`,
       '--cloud-delay': `-${(random() * duration).toFixed(0)}s`,
     }
