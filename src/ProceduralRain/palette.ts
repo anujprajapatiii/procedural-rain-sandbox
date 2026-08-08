@@ -1,0 +1,16 @@
+export const SCENE = {
+  skyDeep: 0x070c13,
+  skyHigh: 0x111d29,
+  fog: 0x4e6a77,
+  farRock: 0x17232b,
+  midRock: 0x202d33,
+  rock: 0x27343a,
+  rockEdge: 0x4b5b5f,
+  moss: 0x728979,
+  rain: 0xaed9e8,
+  rainBright: 0xe4f6f8,
+  water: 0x78c9dc,
+  waterGlow: 0xb8edf0,
+  debugSolid: 0xf0a65a,
+  debugGrid: 0x6f8792,
+} as const
