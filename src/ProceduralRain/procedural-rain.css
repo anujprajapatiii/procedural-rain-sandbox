@@ -36,7 +36,13 @@
   width: 124%;
   display: block;
   opacity: 1;
-  background: transparent;
+  color: transparent;
+  background-color: transparent;
+  background-image: none;
+  border: 0;
+  box-shadow: none;
+  filter: none;
+  mix-blend-mode: normal;
   -webkit-backdrop-filter: blur(var(--cloud-blur));
   backdrop-filter: blur(var(--cloud-blur));
   -webkit-mask-repeat: no-repeat;
@@ -47,7 +53,6 @@
 }
 
 .cloud-blur-layer--secondary {
-  background: transparent;
   -webkit-backdrop-filter: blur(var(--cloud-blur));
   backdrop-filter: blur(var(--cloud-blur));
   animation-name: cloud-drift-secondary;

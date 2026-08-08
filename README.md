@@ -55,7 +55,7 @@ The control chrome uses these inherited theme properties:
 - Terrain is drawn as horizontal runs rather than thousands of separate display objects.
 - Two seeded CSS mask fields combine 40 small elliptical cloud gradients into only two `backdrop-filter` compositor layers. They drift independently with CSS transforms, keeping animation out of JavaScript and avoiding per-frame allocations.
 - The cloud layers are completely transparent and apply only blur/filtering to the WebGL scene beneath them; they add no grey or colored fill.
-- The filter chain uses pure blur—no brightness, contrast, saturation, tint, or partial layer opacity—so cloud patches cannot grey out the scene.
+- The overlay paints nothing: transparent color, no background image, border, shadow, element filter, or blend mode. Only `backdrop-filter: blur()` samples the live rain and terrain behind each mask.
 - Automatic mobile and low-quality modes disable the heavier secondary blur field; reduced-motion mode stops the drift entirely.
 
 This is deliberately a stylized cellular water model, not fluid dynamics. The visual priorities are readable rain shadows, roof runoff, falling streams, and temporary pools.
