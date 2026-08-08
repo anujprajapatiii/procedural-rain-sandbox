@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RainEngine } from './RainEngine'
-import { createRandom } from './random'
 import type { Preset, ProceduralRainProps, SimulationSettings, SimulationStats } from './types'
 import './procedural-rain.css'
 
@@ -18,48 +17,12 @@ const PRESET_NAMES: Record<Preset, string> = {
   wilds: 'generated wilds',
 }
 
-type CloudLayerStyle = CSSProperties & Record<`--cloud-${string}`, string>
-
-function createCloudMask(random: () => number, count: number, minimumSize: number, maximumSize: number) {
-  return Array.from({ length: count }, () => {
-    const x = -4 + random() * 108
-    const y = -5 + random() * 110
-    const radiusX = minimumSize + random() * (maximumSize - minimumSize)
-    const radiusY = minimumSize * 0.7 + random() * (maximumSize * 1.08 - minimumSize * 0.7)
-    const peak = 0.92 + random() * 0.08
-    const core = 8 + random() * 20
-    const shoulder = 42 + random() * 18
-    const edge = 72 + random() * 22
-    return `radial-gradient(ellipse ${radiusX.toFixed(1)}% ${radiusY.toFixed(1)}% at ${x.toFixed(1)}% ${y.toFixed(1)}%, rgb(0 0 0 / ${peak.toFixed(2)}) 0%, rgb(0 0 0 / ${(peak * 0.96).toFixed(2)}) ${core.toFixed(0)}%, rgb(0 0 0 / ${(peak * 0.7).toFixed(2)}) ${shoulder.toFixed(0)}%, transparent ${edge.toFixed(0)}%)`
-  }).join(', ')
-}
-
-function createCloudLayers(seed: string) {
-  const random = createRandom(`${seed}:cloud-fields`)
-  return [
-    { count: 24, minimumSize: 4, maximumSize: 11, blur: 42 + random() * 24 },
-    { count: 16, minimumSize: 7, maximumSize: 16, blur: 66 + random() * 30 },
-  ].map((layer, id) => {
-    const duration = 84 + random() * 68
-    const maskImage = createCloudMask(random, layer.count, layer.minimumSize, layer.maximumSize)
-    const style: CloudLayerStyle = {
-      WebkitMaskImage: maskImage,
-      maskImage,
-      '--cloud-blur': `${layer.blur.toFixed(1)}px`,
-      '--cloud-duration': `${duration.toFixed(0)}s`,
-      '--cloud-delay': `-${(random() * duration).toFixed(0)}s`,
-    }
-    return { id, style }
-  })
-}
-
 const DEFAULT_STATS: SimulationStats = { fps: 0, particles: 0, wetCells: 0, grid: '—' }
 
 export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', quality = 'auto' }: ProceduralRainProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<RainEngine | null>(null)
   const [seedDraft, setSeedDraft] = useState(initialSeed)
-  const [hazeVersion, setHazeVersion] = useState(0)
   const [stats, setStats] = useState(DEFAULT_STATS)
   const [settings, setSettings] = useState<SimulationSettings>(() => ({
     preset: 'ruins',
@@ -69,11 +32,8 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
     speed: 1,
     paused: typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     debug: false,
+    blurVersion: 0,
   }))
-  const cloudLayers = useMemo(
-    () => createCloudLayers(`${settings.seed}:${settings.preset}:${hazeVersion}`),
-    [settings.preset, settings.seed, hazeVersion],
-  )
 
   useEffect(() => {
     const host = hostRef.current
@@ -125,9 +85,11 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
   const randomizeLayout = () => {
     const nextSeed = `WILD-${Math.floor(Math.random() * 0xffffff).toString(36).toUpperCase().padStart(5, '0')}`
     setSeedDraft(nextSeed)
-    setHazeVersion((version) => version + 1)
-    patchSettings({ preset: 'wilds', seed: nextSeed })
+    setSettings((current) => ({ ...current, preset: 'wilds', seed: nextSeed, blurVersion: current.blurVersion + 1 }))
   }
+
+  const randomizeBlur = () =>
+    setSettings((current) => ({ ...current, blurVersion: current.blurVersion + 1 }))
 
   const setWeather = (weather: 'light' | 'storm' | 'gale') => {
     if (weather === 'light') patchSettings({ intensity: 0.28, wind: 0.06, speed: 0.85 })
@@ -138,15 +100,6 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
   return (
     <section className={`rain-sandbox rain-quality-${quality} ${className}`} aria-label="Procedural rain sandbox">
       <div ref={hostRef} className={`rain-canvas${settings.debug ? ' is-debug' : ''}`} aria-label="Live procedural rain simulation">
-        <div className="blur-field" aria-hidden="true">
-          {cloudLayers.map((layer) => (
-            <i
-              key={layer.id}
-              className={`cloud-blur-layer cloud-blur-layer--${layer.id === 0 ? 'primary' : 'secondary'}`}
-              style={layer.style}
-            />
-          ))}
-        </div>
         <div className="scene-hud" aria-hidden="true">
           <span>{PRESET_NAMES[settings.preset]}</span>
           <span>{settings.paused ? 'suspended' : `${Math.round(settings.intensity * 100)}% rainfall`}</span>
@@ -206,7 +159,7 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
           <button type="button" onClick={() => patchSettings({ paused: !settings.paused })}>{settings.paused ? 'Play' : 'Pause'}</button>
           <button type="button" onClick={() => engineRef.current?.resetWater()}>Reset water</button>
           <button type="button" className={settings.debug ? 'is-active' : ''} aria-pressed={settings.debug} onClick={() => patchSettings({ debug: !settings.debug })}>Debug grid</button>
-          <button className="blur-randomize" type="button" onClick={() => setHazeVersion((version) => version + 1)}>Randomize blur</button>
+          <button className="blur-randomize" type="button" onClick={randomizeBlur}>Randomize blur</button>
           <span className="live-readout"><i className={settings.paused ? 'is-paused' : ''} /> {stats.fps || '—'} FPS</span>
         </div>
       </div>

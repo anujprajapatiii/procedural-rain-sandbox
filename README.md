@@ -53,10 +53,10 @@ The control chrome uses these inherited theme properties:
 - Water is a bounded pair of `Float32Array` buffers; each step swaps the buffers rather than allocating more memory.
 - Particle limits scale with container area and quality, with hard caps for long-running sessions.
 - Terrain is drawn as horizontal runs rather than thousands of separate display objects.
-- Two seeded CSS mask fields combine 40 small elliptical cloud gradients into only two `backdrop-filter` compositor layers. They drift independently with CSS transforms, keeping animation out of JavaScript and avoiding per-frame allocations.
-- The cloud layers are completely transparent and apply only blur/filtering to the WebGL scene beneath them; they add no grey or colored fill.
-- The overlay uses a `0.001` alpha compositor trigger—less than one 8-bit color step—so Chromium/WebKit reliably sample the WebGL canvas. It has no perceptible fill; `backdrop-filter: blur()` supplies the visible effect.
-- Automatic mobile and low-quality modes disable the heavier secondary blur field; reduced-motion mode stops the drift entirely.
+- The actual Pixi scene—including the current rain frame—is captured into one reusable, downsampled render texture and drawn back through two Gaussian blur filters. This guarantees that rain, water, and terrain are blurred together.
+- Two small Canvas2D alpha textures provide smooth randomized cloud masks. They are regenerated only on resize or when **Randomize blur** is pressed, then reused by the GPU with no per-frame allocations.
+- The blur masks drift inside the renderer. Automatic mobile and low-quality modes disable the heavier secondary pass, and reduced-motion starts the simulation paused.
+- Render textures, mask textures, and filters are explicitly destroyed on unmount; resize reuses the same scene texture instead of accumulating GPU resources.
 
 This is deliberately a stylized cellular water model, not fluid dynamics. The visual priorities are readable rain shadows, roof runoff, falling streams, and temporary pools.
 

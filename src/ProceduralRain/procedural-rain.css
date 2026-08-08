@@ -18,61 +18,6 @@
 
 .rain-surface { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; }
 
-.blur-field {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition: opacity 180ms ease;
-}
-
-.cloud-blur-layer {
-  position: absolute;
-  top: -8%;
-  bottom: -8%;
-  left: -12%;
-  width: 124%;
-  display: block;
-  opacity: 1;
-  color: transparent;
-  /* A subpixel-alpha paint keeps Chromium/WebKit from optimizing the filtered
-     surface away. At 0.001 alpha it contributes less than one 8-bit color step. */
-  background-color: rgb(255 255 255 / 0.001);
-  background-image: none;
-  border: 0;
-  box-shadow: none;
-  filter: none;
-  mix-blend-mode: normal;
-  -webkit-backdrop-filter: blur(var(--cloud-blur));
-  backdrop-filter: blur(var(--cloud-blur));
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  transform: translate3d(-3%, 0, 0);
-  backface-visibility: hidden;
-  will-change: transform;
-  animation: cloud-drift-primary var(--cloud-duration) ease-in-out var(--cloud-delay) infinite alternate;
-}
-
-.cloud-blur-layer--secondary {
-  -webkit-backdrop-filter: blur(var(--cloud-blur));
-  backdrop-filter: blur(var(--cloud-blur));
-  animation-name: cloud-drift-secondary;
-}
-
-.rain-quality-low .cloud-blur-layer--secondary { display: none; }
-.rain-canvas.is-debug .blur-field { opacity: 0.24; }
-
-@keyframes cloud-drift-primary {
-  from { transform: translate3d(-3.5%, -0.5%, 0) scale(1.01); }
-  to { transform: translate3d(4.5%, 0.7%, 0) scale(1.025); }
-}
-
-@keyframes cloud-drift-secondary {
-  from { transform: translate3d(-5%, 0.8%, 0) scale(1.035); }
-  to { transform: translate3d(3%, -0.6%, 0) scale(1.01); }
-}
-
 .scene-hud {
   position: absolute;
   z-index: 2;
@@ -236,10 +181,8 @@
   .seed-field { grid-column: 1; }
   .generate-button { grid-column: 2; }
   .control-row--weather { padding-block: 9px; }
-  .rain-quality-auto .cloud-blur-layer--secondary { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .control-deck button, .blur-field { transition: none; }
-  .cloud-blur-layer { animation: none; transform: none; will-change: auto; }
+  .control-deck button { transition: none; }
 }

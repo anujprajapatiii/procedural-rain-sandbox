@@ -1,4 +1,4 @@
-import { Application, Container, Graphics } from 'pixi.js'
+import { Application, BlurFilter, Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js'
 import { SCENE } from './palette'
 import { createRandom } from './random'
 import { generateTerrain, type TerrainGrid } from './terrain'
@@ -14,6 +14,17 @@ export class RainEngine {
   private waterGraphic = new Graphics()
   private rainGraphic = new Graphics()
   private debugGraphic = new Graphics()
+  private blurOverlay = new Container()
+  private blurTexture: RenderTexture | null = null
+  private blurSprites: Sprite[] = []
+  private blurMasks: Sprite[] = []
+  private blurMaskCanvases: HTMLCanvasElement[] = []
+  private blurMaskTextures: Texture[] = []
+  private blurFilters: BlurFilter[] = []
+  private blurDurations = [100, 140]
+  private blurPhases = [0, 0]
+  private blurElapsed = 0
+  private blurFrame = 0
   private grid: TerrainGrid | null = null
   private water = new Float32Array(0)
   private nextWater = new Float32Array(0)
@@ -66,21 +77,25 @@ export class RainEngine {
     this.app.canvas.setAttribute('aria-hidden', 'true')
     this.host.appendChild(this.app.canvas)
     this.root.addChild(this.background, this.terrainGraphic, this.waterGraphic, this.rainGraphic, this.debugGraphic)
-    this.app.stage.addChild(this.root)
+    this.app.stage.addChild(this.root, this.blurOverlay)
     this.resize(this.host.clientWidth, this.host.clientHeight)
     this.app.ticker.add(this.update)
   }
 
   setSettings(settings: SimulationSettings) {
     const terrainChanged = settings.seed !== this.settings.seed || settings.preset !== this.settings.preset
+    const blurChanged = settings.blurVersion !== this.settings.blurVersion
     this.settings = settings
     if (terrainChanged && this.grid) this.rebuild()
+    else if (blurChanged && this.grid) this.rebuildBlurMasks()
     this.debugGraphic.visible = settings.debug
+    this.blurOverlay.alpha = settings.debug ? 0.22 : 1
   }
 
   resize(width: number, height: number) {
     if (this.destroyed || width < 2 || height < 2 || !this.app.renderer) return
     this.app.renderer.resize(Math.round(width), Math.round(height))
+    this.ensureBlurResources(width, height)
     this.particleLimit = this.resolveParticleLimit(width, height)
     this.allocateParticles(this.particleLimit)
     this.rebuild()
@@ -95,6 +110,10 @@ export class RainEngine {
   destroy() {
     this.destroyed = true
     this.app.ticker?.remove(this.update)
+    for (const filter of this.blurFilters) filter.destroy()
+    for (const texture of this.blurMaskTextures) texture.destroy(true)
+    this.blurTexture?.destroy(true)
+    this.blurTexture = null
     if (this.app.renderer) this.app.destroy(true, { children: true })
     this.onStats(EMPTY_STATS)
   }
@@ -132,6 +151,111 @@ export class RainEngine {
     this.spawnCarry = 0
     this.drawStaticScene()
     this.drawDebug()
+    this.rebuildBlurMasks()
+  }
+
+  private ensureBlurResources(width: number, height: number) {
+    const captureResolution = this.quality === 'high' ? 0.42 : this.quality === 'low' ? 0.25 : 0.34
+    if (!this.blurTexture) {
+      this.blurTexture = RenderTexture.create({ width, height, resolution: captureResolution, dynamic: true })
+      for (let layer = 0; layer < 2; layer += 1) {
+        const sprite = new Sprite(this.blurTexture)
+        const maskCanvas = document.createElement('canvas')
+        const maskResolution = this.quality === 'high' ? 0.5 : this.quality === 'low' ? 0.28 : 0.38
+        maskCanvas.width = Math.max(2, Math.ceil(width * maskResolution))
+        maskCanvas.height = Math.max(2, Math.ceil(height * maskResolution))
+        const maskTexture = Texture.from(maskCanvas, true)
+        const mask = new Sprite(maskTexture)
+        const filter = new BlurFilter({ strength: layer === 0 ? 18 : 30, quality: 1, kernelSize: 9 })
+        filter.repeatEdgePixels = true
+        sprite.filters = [filter]
+        sprite.setMask({ mask, channel: 'alpha', inverse: false })
+        this.blurSprites.push(sprite)
+        this.blurMasks.push(mask)
+        this.blurMaskCanvases.push(maskCanvas)
+        this.blurMaskTextures.push(maskTexture)
+        this.blurFilters.push(filter)
+        this.blurOverlay.addChild(sprite, mask)
+      }
+    } else {
+      this.blurTexture.resize(width, height, captureResolution)
+    }
+    for (const sprite of this.blurSprites) {
+      sprite.texture = this.blurTexture
+      sprite.width = width
+      sprite.height = height
+    }
+    const useSecondary = this.quality === 'high' || (this.quality === 'auto' && width >= 700 && width * height >= 480_000)
+    if (this.blurSprites[1]) this.blurSprites[1].visible = useSecondary
+  }
+
+  private rebuildBlurMasks() {
+    if (!this.grid || this.blurMasks.length === 0) return
+    const { width, height } = this.grid
+    const random = createRandom(`${this.settings.seed}:${this.settings.preset}:${this.settings.blurVersion}:render-blur`)
+    const layerSettings = [
+      { count: 22, minimum: 0.05, maximum: 0.13, strength: 34 + random() * 14 },
+      { count: 14, minimum: 0.08, maximum: 0.18, strength: 64 + random() * 26 },
+    ]
+    for (let layer = 0; layer < this.blurMasks.length; layer += 1) {
+      const mask = this.blurMasks[layer]
+      const maskCanvas = this.blurMaskCanvases[layer]
+      const maskTexture = this.blurMaskTextures[layer]
+      const config = layerSettings[layer]
+      const maskResolution = this.quality === 'high' ? 0.5 : this.quality === 'low' ? 0.28 : 0.38
+      maskCanvas.width = Math.max(2, Math.ceil(width * maskResolution))
+      maskCanvas.height = Math.max(2, Math.ceil(height * maskResolution))
+      maskTexture.source.resize(maskCanvas.width, maskCanvas.height, 1)
+      const context = maskCanvas.getContext('2d')
+      if (!context) continue
+      context.clearRect(0, 0, maskCanvas.width, maskCanvas.height)
+      context.globalCompositeOperation = 'lighter'
+      const columns = layer === 0 ? 6 : 4
+      const rows = Math.ceil(config.count / columns)
+      for (let index = 0; index < config.count; index += 1) {
+        const column = index % columns
+        const row = Math.floor(index / columns)
+        const x = ((column + 0.15 + random() * 0.7) / columns) * maskCanvas.width
+        const y = ((row + 0.12 + random() * 0.76) / rows) * maskCanvas.height
+        const radiusX = maskCanvas.width * (config.minimum + random() * (config.maximum - config.minimum))
+        const radiusY = maskCanvas.height * (config.minimum * 0.72 + random() * (config.maximum * 1.08 - config.minimum * 0.72))
+        context.save()
+        context.translate(x, y)
+        context.scale(1, radiusY / Math.max(1, radiusX))
+        const gradient = context.createRadialGradient(0, 0, 0, 0, 0, radiusX)
+        gradient.addColorStop(0, 'white')
+        gradient.addColorStop(0.46 + random() * 0.12, 'white')
+        gradient.addColorStop(0.74 + random() * 0.1, 'rgb(255 255 255 / 0.68)')
+        gradient.addColorStop(1, 'transparent')
+        context.fillStyle = gradient
+        context.beginPath()
+        context.arc(0, 0, radiusX, 0, Math.PI * 2)
+        context.fill()
+        context.restore()
+      }
+      maskTexture.source.update()
+      maskTexture.update()
+      mask.width = width
+      mask.height = height
+      this.blurFilters[layer].strength = config.strength
+      this.blurDurations[layer] = 90 + random() * 75
+      this.blurPhases[layer] = random() * Math.PI * 2
+    }
+  }
+
+  private updateBlur(rawDelta: number) {
+    if (!this.blurTexture || this.blurSprites.length === 0) return
+    if (!this.settings.paused) this.blurElapsed += rawDelta * 0.001
+    for (let layer = 0; layer < this.blurMasks.length; layer += 1) {
+      const phase = this.blurPhases[layer] + (this.blurElapsed / this.blurDurations[layer]) * Math.PI * 2
+      this.blurMasks[layer].x = Math.sin(phase) * this.app.screen.width * (layer === 0 ? 0.035 : 0.055)
+      this.blurMasks[layer].y = Math.cos(phase * 0.53) * this.app.screen.height * 0.008
+    }
+    this.blurFrame += 1
+    const captureEveryFrame = this.quality === 'high'
+    if (captureEveryFrame || this.blurFrame % 2 === 0) {
+      this.app.renderer.render({ container: this.root, target: this.blurTexture, clear: true })
+    }
   }
 
   private drawStaticScene() {
@@ -192,6 +316,7 @@ export class RainEngine {
     }
     this.drawRain()
     this.drawWater()
+    this.updateBlur(rawDelta)
     this.frameCount += 1
     this.elapsedStats += rawDelta
     if (this.elapsedStats > 420) {

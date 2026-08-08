@@ -15,6 +15,7 @@ export interface SimulationSettings {
   speed: number
   paused: boolean
   debug: boolean
+  blurVersion: number
 }
 
 export interface SimulationStats {
