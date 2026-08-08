@@ -23,7 +23,6 @@
   z-index: 1;
   inset: 0;
   overflow: hidden;
-  contain: layout paint style;
   pointer-events: none;
   transition: opacity 180ms ease;
 }
@@ -37,7 +36,9 @@
   display: block;
   opacity: 1;
   color: transparent;
-  background-color: transparent;
+  /* A subpixel-alpha paint keeps Chromium/WebKit from optimizing the filtered
+     surface away. At 0.001 alpha it contributes less than one 8-bit color step. */
+  background-color: rgb(255 255 255 / 0.001);
   background-image: none;
   border: 0;
   box-shadow: none;
@@ -48,6 +49,7 @@
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   transform: translate3d(-3%, 0, 0);
+  backface-visibility: hidden;
   will-change: transform;
   animation: cloud-drift-primary var(--cloud-duration) ease-in-out var(--cloud-delay) infinite alternate;
 }
