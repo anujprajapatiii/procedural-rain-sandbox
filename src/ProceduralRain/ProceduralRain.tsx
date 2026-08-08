@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { RainEngine } from './RainEngine'
+import { createRandom } from './random'
 import type { Preset, ProceduralRainProps, SimulationSettings, SimulationStats } from './types'
 import './procedural-rain.css'
 
@@ -7,7 +8,35 @@ const PRESETS: { id: Preset; label: string }[] = [
   { id: 'ruins', label: 'Open ruins' },
   { id: 'caves', label: 'Deep caves' },
   { id: 'shafts', label: 'Vertical shafts' },
+  { id: 'wilds', label: 'Generated wilds' },
 ]
+
+const PRESET_NAMES: Record<Preset, string> = {
+  ruins: 'open ruins',
+  caves: 'deep caves',
+  shafts: 'vertical shafts',
+  wilds: 'generated wilds',
+}
+
+type BlotchStyle = CSSProperties & Record<`--blotch-${string}`, string>
+
+function createBlotches(seed: string) {
+  const random = createRandom(`${seed}:organic-blur`)
+  return Array.from({ length: 8 }, (_, id) => {
+    const radius = Array.from({ length: 8 }, () => `${32 + Math.round(random() * 36)}%`)
+    const style: BlotchStyle = {
+      '--blotch-x': `${-12 + random() * 100}%`,
+      '--blotch-y': `${-10 + random() * 96}%`,
+      '--blotch-w': `${21 + random() * 34}%`,
+      '--blotch-h': `${17 + random() * 35}%`,
+      '--blotch-blur': `${2.5 + random() * 7}px`,
+      '--blotch-opacity': `${0.28 + random() * 0.5}`,
+      '--blotch-rotate': `${-24 + random() * 48}deg`,
+      '--blotch-radius': `${radius.slice(0, 4).join(' ')} / ${radius.slice(4).join(' ')}`,
+    }
+    return { id, style }
+  })
+}
 
 const DEFAULT_STATS: SimulationStats = { fps: 0, particles: 0, wetCells: 0, grid: '—' }
 
@@ -15,6 +44,7 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
   const hostRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<RainEngine | null>(null)
   const [seedDraft, setSeedDraft] = useState(initialSeed)
+  const [hazeVersion, setHazeVersion] = useState(0)
   const [stats, setStats] = useState(DEFAULT_STATS)
   const [settings, setSettings] = useState<SimulationSettings>(() => ({
     preset: 'ruins',
@@ -25,6 +55,10 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
     paused: typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     debug: false,
   }))
+  const blotches = useMemo(
+    () => createBlotches(`${settings.seed}:${settings.preset}:${hazeVersion}`),
+    [settings.preset, settings.seed, hazeVersion],
+  )
 
   useEffect(() => {
     const host = hostRef.current
@@ -73,6 +107,13 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
     patchSettings({ seed: nextSeed })
   }
 
+  const randomizeLayout = () => {
+    const nextSeed = `WILD-${Math.floor(Math.random() * 0xffffff).toString(36).toUpperCase().padStart(5, '0')}`
+    setSeedDraft(nextSeed)
+    setHazeVersion((version) => version + 1)
+    patchSettings({ preset: 'wilds', seed: nextSeed })
+  }
+
   const setWeather = (weather: 'light' | 'storm' | 'gale') => {
     if (weather === 'light') patchSettings({ intensity: 0.28, wind: 0.06, speed: 0.85 })
     if (weather === 'storm') patchSettings({ intensity: 0.82, wind: 0.18, speed: 1 })
@@ -81,9 +122,12 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
 
   return (
     <section className={`rain-sandbox ${className}`} aria-label="Procedural rain sandbox">
-      <div ref={hostRef} className="rain-canvas" aria-label="Live procedural rain simulation">
+      <div ref={hostRef} className={`rain-canvas${settings.debug ? ' is-debug' : ''}`} aria-label="Live procedural rain simulation">
+        <div className="blur-field" aria-hidden="true">
+          {blotches.map((blotch) => <i key={blotch.id} className="blur-blotch" style={blotch.style} />)}
+        </div>
         <div className="scene-hud" aria-hidden="true">
-          <span>{settings.preset.replace('ruins', 'open ruins').replace('caves', 'deep caves').replace('shafts', 'vertical shafts')}</span>
+          <span>{PRESET_NAMES[settings.preset]}</span>
           <span>{settings.paused ? 'suspended' : `${Math.round(settings.intensity * 100)}% rainfall`}</span>
         </div>
         {settings.debug && (
@@ -108,6 +152,9 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
               {preset.label}
             </button>
           ))}
+          <button className="randomize-layout" type="button" onClick={randomizeLayout}>
+            <span>Randomize layout</span><i aria-hidden="true">↗</i>
+          </button>
         </div>
         <div className="control-row control-row--weather" aria-label="Weather state">
           <span className="control-label">WEATHER</span>
@@ -138,6 +185,7 @@ export function ProceduralRain({ className = '', initialSeed = 'MONSOON-07', qua
           <button type="button" onClick={() => patchSettings({ paused: !settings.paused })}>{settings.paused ? 'Play' : 'Pause'}</button>
           <button type="button" onClick={() => engineRef.current?.resetWater()}>Reset water</button>
           <button type="button" className={settings.debug ? 'is-active' : ''} aria-pressed={settings.debug} onClick={() => patchSettings({ debug: !settings.debug })}>Debug grid</button>
+          <button type="button" onClick={() => setHazeVersion((version) => version + 1)}>Shuffle haze</button>
           <span className="live-readout"><i className={settings.paused ? 'is-paused' : ''} /> {stats.fps || '—'} FPS</span>
         </div>
       </div>

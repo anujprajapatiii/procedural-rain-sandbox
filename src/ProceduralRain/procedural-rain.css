@@ -16,7 +16,35 @@
   background: var(--background-primary);
 }
 
-.rain-surface { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.rain-surface { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; }
+
+.blur-field {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.blur-blotch {
+  position: absolute;
+  left: var(--blotch-x);
+  top: var(--blotch-y);
+  width: var(--blotch-w);
+  height: var(--blotch-h);
+  display: block;
+  border-radius: var(--blotch-radius);
+  opacity: var(--blotch-opacity);
+  transform: rotate(var(--blotch-rotate));
+  background: color-mix(in srgb, var(--background-primary) 4%, transparent);
+  -webkit-backdrop-filter: blur(var(--blotch-blur)) saturate(0.82);
+  backdrop-filter: blur(var(--blotch-blur)) saturate(0.82);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 20%, rgb(0 0 0 / 0.92) 52%, transparent 76%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 20%, rgb(0 0 0 / 0.92) 52%, transparent 76%);
+}
+
+.rain-canvas.is-debug .blur-field { opacity: 0.24; }
 
 .scene-hud {
   position: absolute;
@@ -64,8 +92,16 @@
 
 .control-row { display: flex; gap: 6px; padding: 12px; border-bottom: 1px solid var(--border-primary); }
 
-.control-row--presets { display: grid; gap: 4px; }
+.control-row--presets { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .control-row--presets button { justify-content: flex-start; padding: 0 11px; }
+.control-row--presets .randomize-layout {
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--text-primary);
+  border-style: dashed;
+}
+.randomize-layout i { font-style: normal; color: var(--text-secondary); }
 .control-row--weather { align-items: center; }
 .control-row--weather button { flex: 1; min-width: 0; padding: 0 7px; }
 .control-row--actions { margin-top: auto; flex-wrap: wrap; border-top: 1px solid var(--border-primary); border-bottom: 0; }
@@ -154,8 +190,9 @@
 @media (max-width: 850px) {
   .rain-sandbox { grid-template-columns: 1fr; grid-template-rows: 420px auto; }
   .control-deck { border-top: 1px solid var(--border-primary); border-left: 0; }
-  .control-row--presets { grid-template-columns: repeat(3, 1fr); }
+  .control-row--presets { grid-template-columns: repeat(4, 1fr); }
   .control-row--presets button { justify-content: center; padding: 0 6px; }
+  .control-row--presets .randomize-layout { grid-column: 1 / -1; justify-content: center; gap: 8px; }
   .control-grid { grid-template-columns: minmax(120px, 1fr) auto repeat(3, minmax(90px, 1fr)); align-items: end; gap: 12px; }
   .seed-field { grid-column: auto; }
   .generate-button { grid-column: auto; width: auto; padding-inline: 12px; }
@@ -171,8 +208,9 @@
   .seed-field { grid-column: 1; }
   .generate-button { grid-column: 2; }
   .control-row--weather { padding-block: 9px; }
+  .blur-blotch:nth-child(n + 7) { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .control-deck button { transition: none; }
+  .control-deck button, .blur-field { transition: none; }
 }

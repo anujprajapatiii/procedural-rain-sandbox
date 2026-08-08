@@ -94,6 +94,67 @@ export function generateTerrain(
     fillRect(cols * 0.14, rows * 0.69, cols * 0.16, 2)
   }
 
+  if (preset === 'wilds') {
+    // Build a readable composition from terrain "phrases" rather than scattering
+    // rectangles. Each phrase has shelter, a vertical interruption, and an exit
+    // for water, so generated scenes stay interesting to both rain and runoff.
+    const zoneCount = Math.max(3, Math.min(5, Math.floor(cols / 22)))
+    const zoneWidth = cols / zoneCount
+    for (let zone = 0; zone < zoneCount; zone += 1) {
+      const start = zone * zoneWidth
+      const inset = 1 + Math.floor(random() * Math.max(2, zoneWidth * 0.12))
+      const x = start + inset
+      const width = Math.max(7, zoneWidth - inset - 1 - random() * zoneWidth * 0.14)
+      const motif = Math.floor(random() * 4)
+      const high = rows * (0.18 + random() * 0.18)
+      const middle = rows * (0.42 + random() * 0.16)
+
+      if (motif === 0) {
+        // Arch: strong rain shadow with two unequal runoff edges.
+        fillRect(x, high, width, 2)
+        fillRect(x + 1, high + 2, 2 + random() * 2, rows * (0.2 + random() * 0.2))
+        fillRect(x + width - 3, high + 2, 2, rows * (0.1 + random() * 0.26))
+      } else if (motif === 1) {
+        // Staggered shelves make a small cascade.
+        fillRect(x, high, width * 0.68, 2)
+        fillRect(x + width * 0.3, middle, width * 0.68, 2)
+        fillRect(x + width * (random() < 0.5 ? 0.3 : 0.82), middle + 2, 2, rows * 0.18)
+      } else if (motif === 2) {
+        // A monolith creates a shaft; cut windows prevent a solid dead zone.
+        const wallX = x + width * (0.25 + random() * 0.45)
+        fillRect(wallX, high, Math.max(3, width * 0.2), rows * 0.55)
+        fillRect(wallX - width * 0.32, middle, width * 0.34, 2)
+        fillRect(wallX + width * 0.18, rows * 0.3, width * 0.35, 2)
+        fillRect(wallX, rows * 0.52, Math.max(3, width * 0.2), rows * 0.1, 0)
+      } else {
+        // Hanging canopy with a low catchment beneath it.
+        fillRect(x, high, width, 2)
+        fillRect(x + width * 0.12, high + 2, Math.max(2, width * 0.13), rows * 0.2)
+        fillRect(x + width * 0.18, rows * 0.63, width * 0.62, 2)
+        fillRect(x + width * 0.18, rows * 0.65, 2, rows * 0.08)
+        fillRect(x + width * 0.76, rows * 0.65, 2, rows * 0.08)
+      }
+    }
+
+    // Cut a few narrow weather channels from the sky. They keep every generated
+    // composition permeable and turn accidental overlaps into cave-like vents.
+    const channelCount = 2 + Math.floor(random() * 3)
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const channelX = cols * (0.08 + random() * 0.84)
+      fillRect(channelX, 0, 2 + random() * 2, rows * (0.42 + random() * 0.28), 0)
+    }
+
+    // Small ledges bridge otherwise empty gaps and provide drip points.
+    for (let ledge = 0; ledge < 3; ledge += 1) {
+      fillRect(
+        cols * (0.06 + random() * 0.78),
+        rows * (0.3 + random() * 0.38),
+        cols * (0.08 + random() * 0.12),
+        1 + Math.round(random()),
+      )
+    }
+  }
+
   // Seal only the bottom boundary; water can blow off either side of the scene.
   fillRect(0, rows - 1, cols, 1)
   return { cells, cols, rows, cell, width, height }

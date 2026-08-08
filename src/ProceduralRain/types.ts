@@ -1,4 +1,4 @@
-export type Preset = 'ruins' | 'caves' | 'shafts'
+export type Preset = 'ruins' | 'caves' | 'shafts' | 'wilds'
 export type Quality = 'auto' | 'low' | 'high'
 
 export interface ProceduralRainProps {
