@@ -54,6 +54,7 @@ The control chrome uses these inherited theme properties:
 - Particle limits scale with container area and quality, with hard caps for long-running sessions.
 - Terrain is drawn as horizontal runs rather than thousands of separate display objects.
 - Two seeded CSS mask fields combine 40 small elliptical cloud gradients into only two `backdrop-filter` compositor layers. They drift independently with CSS transforms, keeping animation out of JavaScript and avoiding per-frame allocations.
+- The cloud layers are completely transparent and apply only blur/filtering to the WebGL scene beneath them; they add no grey or colored fill.
 - Automatic mobile and low-quality modes disable the heavier secondary blur field; reduced-motion mode stops the drift entirely.
 
 This is deliberately a stylized cellular water model, not fluid dynamics. The visual priorities are readable rain shadows, roof runoff, falling streams, and temporary pools.

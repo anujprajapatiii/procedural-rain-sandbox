@@ -37,8 +37,8 @@ function createCloudMask(random: () => number, count: number, minimumSize: numbe
 function createCloudLayers(seed: string) {
   const random = createRandom(`${seed}:cloud-fields`)
   return [
-    { count: 24, minimumSize: 4, maximumSize: 11, blur: 16 + random() * 8, opacity: 0.88 + random() * 0.1 },
-    { count: 16, minimumSize: 7, maximumSize: 16, blur: 28 + random() * 12, opacity: 0.62 + random() * 0.14 },
+    { count: 24, minimumSize: 4, maximumSize: 11, blur: 48 + random() * 24, opacity: 0.88 + random() * 0.1 },
+    { count: 16, minimumSize: 7, maximumSize: 16, blur: 84 + random() * 36, opacity: 0.62 + random() * 0.14 },
   ].map((layer, id) => {
     const duration = 84 + random() * 68
     const maskImage = createCloudMask(random, layer.count, layer.minimumSize, layer.maximumSize)

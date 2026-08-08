@@ -36,7 +36,7 @@
   width: 124%;
   display: block;
   opacity: var(--cloud-opacity);
-  background: color-mix(in srgb, var(--background-primary) 8%, transparent);
+  background: transparent;
   -webkit-backdrop-filter: blur(var(--cloud-blur)) saturate(0.68) contrast(0.88) brightness(0.86);
   backdrop-filter: blur(var(--cloud-blur)) saturate(0.68) contrast(0.88) brightness(0.86);
   -webkit-mask-repeat: no-repeat;
@@ -47,7 +47,7 @@
 }
 
 .cloud-blur-layer--secondary {
-  background: color-mix(in srgb, var(--background-primary) 12%, transparent);
+  background: transparent;
   -webkit-backdrop-filter: blur(var(--cloud-blur)) saturate(0.54) contrast(0.82) brightness(0.78);
   backdrop-filter: blur(var(--cloud-blur)) saturate(0.54) contrast(0.82) brightness(0.78);
   animation-name: cloud-drift-secondary;
