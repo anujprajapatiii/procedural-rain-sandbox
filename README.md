@@ -20,7 +20,7 @@ npm run preview
 
 - Switch between **Open ruins**, **Deep caves**, **Vertical shafts**, and the logic-driven **Generated wilds** mode.
 - Use **Randomize layout** to create a new seed and a fresh composition of shelters, shafts, ledges, drainage gaps, and water catchments.
-- Use **Shuffle haze** to regenerate the organic CSS blur patches without changing the terrain.
+- Use **Randomize blur** to regenerate two independent fields of cloudy, progressively faded blur patches without changing the terrain.
 - Jump to light rain, a heavy storm, or a wind-driven gale.
 - Adjust rain, wind, and time independently.
 - Enter a seed and regenerate it to reproduce the same terrain.
@@ -53,7 +53,8 @@ The control chrome uses these inherited theme properties:
 - Water is a bounded pair of `Float32Array` buffers; each step swaps the buffers rather than allocating more memory.
 - Particle limits scale with container area and quality, with hard caps for long-running sessions.
 - Terrain is drawn as horizontal runs rather than thousands of separate display objects.
-- Seeded CSS backdrop-filter patches soften different parts of the WebGL scene without adding work to the simulation loop.
+- Two seeded CSS mask fields combine 40 small elliptical cloud gradients into only two `backdrop-filter` compositor layers. They drift independently with CSS transforms, keeping animation out of JavaScript and avoiding per-frame allocations.
+- Automatic mobile and low-quality modes disable the heavier secondary blur field; reduced-motion mode stops the drift entirely.
 
 This is deliberately a stylized cellular water model, not fluid dynamics. The visual priorities are readable rain shadows, roof runoff, falling streams, and temporary pools.
 

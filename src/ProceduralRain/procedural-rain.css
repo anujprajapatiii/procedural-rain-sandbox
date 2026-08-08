@@ -23,28 +23,48 @@
   z-index: 1;
   inset: 0;
   overflow: hidden;
+  contain: layout paint style;
   pointer-events: none;
   transition: opacity 180ms ease;
 }
 
-.blur-blotch {
+.cloud-blur-layer {
   position: absolute;
-  left: var(--blotch-x);
-  top: var(--blotch-y);
-  width: var(--blotch-w);
-  height: var(--blotch-h);
+  top: -8%;
+  bottom: -8%;
+  left: -12%;
+  width: 124%;
   display: block;
-  border-radius: var(--blotch-radius);
-  opacity: var(--blotch-opacity);
-  transform: rotate(var(--blotch-rotate));
-  background: color-mix(in srgb, var(--background-primary) 4%, transparent);
-  -webkit-backdrop-filter: blur(var(--blotch-blur)) saturate(0.82);
-  backdrop-filter: blur(var(--blotch-blur)) saturate(0.82);
-  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 20%, rgb(0 0 0 / 0.92) 52%, transparent 76%);
-  mask-image: radial-gradient(ellipse at 50% 50%, black 20%, rgb(0 0 0 / 0.92) 52%, transparent 76%);
+  opacity: var(--cloud-opacity);
+  background: color-mix(in srgb, var(--background-primary) 8%, transparent);
+  -webkit-backdrop-filter: blur(var(--cloud-blur)) saturate(0.68) contrast(0.88) brightness(0.86);
+  backdrop-filter: blur(var(--cloud-blur)) saturate(0.68) contrast(0.88) brightness(0.86);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  transform: translate3d(-3%, 0, 0);
+  will-change: transform;
+  animation: cloud-drift-primary var(--cloud-duration) ease-in-out var(--cloud-delay) infinite alternate;
 }
 
+.cloud-blur-layer--secondary {
+  background: color-mix(in srgb, var(--background-primary) 12%, transparent);
+  -webkit-backdrop-filter: blur(var(--cloud-blur)) saturate(0.54) contrast(0.82) brightness(0.78);
+  backdrop-filter: blur(var(--cloud-blur)) saturate(0.54) contrast(0.82) brightness(0.78);
+  animation-name: cloud-drift-secondary;
+}
+
+.rain-quality-low .cloud-blur-layer--secondary { display: none; }
 .rain-canvas.is-debug .blur-field { opacity: 0.24; }
+
+@keyframes cloud-drift-primary {
+  from { transform: translate3d(-3.5%, -0.5%, 0) scale(1.01); }
+  to { transform: translate3d(4.5%, 0.7%, 0) scale(1.025); }
+}
+
+@keyframes cloud-drift-secondary {
+  from { transform: translate3d(-5%, 0.8%, 0) scale(1.035); }
+  to { transform: translate3d(3%, -0.6%, 0) scale(1.01); }
+}
 
 .scene-hud {
   position: absolute;
@@ -171,6 +191,7 @@
 }
 
 .control-row--actions button { flex: 1; min-width: 76px; padding: 0 9px; }
+.control-row--actions .blur-randomize { flex-basis: 100%; }
 
 .live-readout {
   width: 100%;
@@ -208,9 +229,10 @@
   .seed-field { grid-column: 1; }
   .generate-button { grid-column: 2; }
   .control-row--weather { padding-block: 9px; }
-  .blur-blotch:nth-child(n + 7) { display: none; }
+  .rain-quality-auto .cloud-blur-layer--secondary { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .control-deck button, .blur-field { transition: none; }
+  .cloud-blur-layer { animation: none; transform: none; will-change: auto; }
 }
