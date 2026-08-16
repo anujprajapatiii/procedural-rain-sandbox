@@ -2,6 +2,8 @@
 
 An original, procedural WebGL rain study built with React 19 and PixiJS. Seeded cave geometry, collision, runoff, dripping, and pooling all share one lightweight grid so the scene remains responsive as its container changes size.
 
+Live prototype: https://anujprajapatiii.github.io/procedural-rain-sandbox/
+
 ## Run locally
 
 ```bash
